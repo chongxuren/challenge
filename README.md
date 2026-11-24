@@ -1,10 +1,22 @@
 # Few-Time Signature Challenge
 
-How short can a few-time signature be in the Poisson(1) hash-DAG model? Both tracks measure the maximum length of a successful signature in bytes.
+How short can a few-time signature be in the authenticated-disclosure hash-DAG model? Prove a smaller **upper bound** by constructing one eligible scheme, or a larger **lower bound** that holds for every eligible scheme. The score is the maximum successful signature length in bytes.
 
-| Track | Goal |
-| --- | --- |
-| Construction | Exhibit one eligible scheme and prove an upper bound on its signature length. Smaller is better. |
-| Lower bound | Prove a lower bound that holds for every eligible scheme. Larger is better. |
+**Pre-launch.** You can submit a proof to the Lean checker now. Prize dates and award rules are pending. Pre-launch checks do not enter the competition standings.
 
-**Pre-launch.** Prize submissions will open after the rules and dates are published here. To try the Lean judge and submission CLI now, use the [public rehearsal](https://github.com/chongxuren/poisson-fts-public-test).
+[Leaderboard](https://few-time-signature.github.io/challenge/) · [Submission rules and CLI](RULES.md#submit-with-the-challenge-cli) · [Lean contract](formal/PoissonDAG/V2/Model.lean) · [Judge runs](https://github.com/few-time-signature/challenge/actions/workflows/submit.yml)
+
+| Track | Opening bound | Proof |
+| --- | ---: | --- |
+| Universal lower bound | 99 bytes | [Organizer theorem](formal/PoissonDAG/V2/Lower99.lean) |
+| Construction | 2,020 bytes | [FORS+C entry](examples/entries/construction/fors-c-2020/) |
+
+Signing uses at most 2²⁴ expected hashes, verification at most 512 expected hashes, and honest signing failure is at most 2⁻¹²⁸. Draw one shared Poisson(1) number of independent successful signing histories. The probability that a fresh raw target is accepted and all its required labels can be derived from the public root and pooled disclosures must be at most 2⁻¹²⁸. Every disclosed 16-byte label contributes to the recomputed root. [Formal cost and covering experiment](formal/PoissonDAG/Model.lean)
+
+## Try the judge
+
+Start with `./fts --help`. The CLI creates a fork and opens one pull request per claim. [Submit a construction](RULES.md#submit-a-construction) · [Submit a lower bound](RULES.md#submit-a-lower-bound)
+
+The [FORS proofs](examples/fors/) certify three parameter sets. The [PORS-family candidates](RULES.md#pors-family-references) and [756-byte GRS-CC candidate](examples/grs-cc/) still have proof obligations. The judge and proofs came from the [public rehearsal at its migration commit](https://github.com/chongxuren/poisson-fts-public-test/tree/b0ea6b11a92cf71e5e4928afec17e1886febbc3a). Practice submissions and receipts remain available there.
+
+For local infrastructure checks, run `python3 -B -m unittest discover -s tests -v`. The **Test the challenge** GitHub Actions workflow also runs the Linux Lean and container tests. [Licensing](LICENSE.md)

@@ -1,0 +1,93 @@
+name: Judge a submission
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, synchronize]
+permissions: {}
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    permissions:
+      contents: read
+    outputs:
+      receipt: ${{ steps.judge.outputs.receipt }}
+      scoring: ${{ steps.preflight.outputs.scoring }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Read the pull request as data
+        id: preflight
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          git fetch --no-tags origin "refs/pull/$PR/head"
+          test "$(git rev-parse FETCH_HEAD)" = "$HEAD"
+          python3 -B -m ci.preflight
+      - run: bash ci/setup.sh
+        timeout-minutes: 40
+        env:
+          FTS_BUILD_GRSCC: ${{ steps.preflight.outputs.grscc }}
+          FTS_BUILD_FORS: ${{ steps.preflight.outputs.fors }}
+          FTS_BUILD_PORS: ${{ steps.preflight.outputs.pors }}
+      - name: Replay the certificate against the organizer goal
+        timeout-minutes: 25
+        id: judge
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: python3 -B ci/verify.py "$BASE" "$HEAD"
+  accept:
+    needs: verify
+    if: needs.verify.outputs.scoring == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+      - name: Commit the checked entry and update scores
+        env:
+          RECEIPT: ${{ needs.verify.outputs.receipt }}
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B ci/accept.py
+  report:
+    needs: [verify, accept]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      statuses: write
+    steps:
+      - name: Attach the result to the exact PR head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          VERIFIED: ${{ needs.verify.result }}
+          ACCEPTED: ${{ needs.accept.result }}
+          SCORING: ${{ needs.verify.outputs.scoring }}
+        run: |
+          state=error
+          message='Promotion did not complete. See the workflow run.'
+          if [[ "$VERIFIED" != success ]]; then
+            state=failure
+            message='Entry did not pass verification. See the workflow run.'
+          elif [[ "$SCORING" == false && "$ACCEPTED" == skipped ]]; then
+            state=success
+            message='Proof verified. Pre-launch check only. Standings unchanged.'
+          elif [[ "$ACCEPTED" == success ]]; then
+            state=success
+            message='Proof checked and the score ledger was updated.'
+          fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD" \
+            -f state="$state" -f context='Poisson challenge judge' -f description="$message" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --silent
