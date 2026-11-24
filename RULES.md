@@ -52,8 +52,20 @@ To submit manually, use the same entry format and GitHub judge.
 | --- | --- |
 | `claim.json` | Claim, team and contract, as below |
 | `proof/Main.lean` | The theorem named `Submission.certificate` |
-| `ARGUMENT.md` | The mathematical argument in words |
+| `ARGUMENT.md` | Required public summary followed by the mathematical argument |
 | `PROVENANCE.md` | Contributors, source of the proof and prior work |
+
+## Public write-up
+
+Every entry on either track must include an author-written summary at the start of `ARGUMENT.md`. Use UTF-8 text. An optional Markdown heading (up to 200 characters) supplies the display title. The first paragraph after it is the public summary (up to 1,200 characters). Separate the detailed argument with a blank line.
+
+For a **construction**, give the byte bound, explain what the signer sends, and identify the design choice that achieves the size within the hash budgets. For a **lower bound**, give the byte bound, name the class of schemes it covers, and explain the proof idea. Credit reused designs and proofs in `PROVENANCE.md`. If your result has a paper, include its HTTPS URL in the optional `paper_url` field of `claim.json`. The registered construction families already have paper links.
+
+For example, a construction summary could read:
+
+> GRS-CC signatures fit in 756 bytes. Seven layers disclose six 16-byte labels each, five more labels authenticate the outer choice, and a four-byte counter completes the signature. The verifier recomputes the root in at most 441 hashes.
+
+After a successful Lean replay, the organization website displays the title and summary with links to the full write-up at the verified revision and the judge receipt. The site shows the latest verified revision of each PR, including pre-launch entries. Lean verifies the formal claim. Authors are responsible for the prose and citations. [Submission write-ups](https://few-time-signature.github.io/#activity)
 
 ## Submit a lower bound
 
@@ -83,13 +95,13 @@ Supply an executable construction and a complete Lean proof for the same scheme.
 
 #### PORS family references
 
-| Construction | Manifest scheme | Candidate bytes |
+| Construction | Manifest scheme | Verified upper bound (bytes) |
 | --- | --- | ---: |
 | PORS+FP | `pors-fp-1780-v1` | 1,780 |
 | BPORS+FP | `bpors-fp-1492-v1` | 1,492 |
 | BPORS-C+BFP | `bpors-c-bfp-1188-v1` | 1,188 |
 
-Each manifest selects one [graph and encoder](formal/PoissonDAG/Constructions/PORS/Literal.lean). To complete its [conditional certificate](formal/PoissonDAG/Constructions/PORS/LiteralAssembly.lean), prove the row's `Refinement` for that circuit. The judge awards a score only for the unconditional theorem.
+Each manifest selects one [graph and encoder](formal/PoissonDAG/Constructions/PORS/Literal.lean). To complete its [conditional certificate](formal/PoissonDAG/Constructions/PORS/LiteralAssembly.lean), prove the row's `Refinement` for that circuit. Pre-launch submissions supplied the unconditional proofs. [PORS+FP](https://github.com/few-time-signature/challenge/pull/6) · [BPORS+FP](https://github.com/few-time-signature/challenge/pull/7) · [BPORS-C+BFP](https://github.com/few-time-signature/challenge/pull/5)
 
 #### GRS-CC reference
 
@@ -99,7 +111,7 @@ Each manifest selects one [graph and encoder](formal/PoissonDAG/Constructions/PO
 {"contract":"poisson-dag-v2-challenge-1","track":"construction","id":"grs-proof","team":"example-team","bound_bytes":756}
 ```
 
-The JSON above belongs in `claim.json`. The [GRS-CC Lean assembly](formal/PoissonDAG/Constructions/GRSCC/Certification.lean) reduces the remaining proof to local covering inequalities. Existing lemmas may be reused with attribution.
+The JSON above belongs in `claim.json`. The [GRS-CC Lean assembly](formal/PoissonDAG/Constructions/GRSCC/Certification.lean) reduces the remaining proof to local covering inequalities. The complete pre-launch proof discharges those inequalities. [Verified 756-byte submission](https://github.com/few-time-signature/challenge/pull/8)
 
 **Explicit graph and encoder.** A complete runnable example is the [5,760-byte Merkle forest](examples/merkle_forest/). Its [program.json](examples/merkle_forest/program.json) is generated from the same implementation used in the sign/verify demonstration.
 
@@ -117,5 +129,5 @@ Graph nodes are `source`, `unary i`, or `binary i j`. Gates are `input i`, `cons
 - The read-only job reads the exact Git snapshot as data. It compiles entrant Lean inside an isolated container. A fresh container replays only the exported proof against the organizer's goal. The permitted axioms are `propext`, `Classical.choice` and `Quot.sound`. Every submission needs a complete proof.
 - After scoring opens, a successful check triggers a separate job that commits the exact entry and updated scores together. It checks the PR head again. If the checker changed since submission, rebase and push again. Failed checks leave the ledger untouched.
 - A verified claim earns a place only when it strictly improves the standing record at its intake priority. The gain is the difference in bytes, in the track's direction. Identical scores give priority to the first record. Each team holds one place per track, ranked by its best qualifying byte score. Tracks are scored separately.
-- The baseline is public and may be reproduced. During scored intake a check that ties an earlier entry still earns a receipt. Reusing a result requires attribution. The two Markdown files are required; the judge checks their presence. It does not adjudicate originality or team identity.
+- The baseline is public and may be reproduced. During scored intake a check that ties an earlier entry still earns a receipt. Reusing a result requires attribution. Both Markdown files are required. The checker validates the public summary and keeps scoring tied to the Lean certificate. It does not adjudicate originality or team identity.
 - Entry limits are 64 regular files, 4 MiB per file and 16 MiB total. Proof files may import helper modules under `proof/`. Use only the pinned dependencies. A standard GitHub-hosted Ubuntu runner has up to 40 minutes to build the organizer libraries. Entrant compilation and kernel replay then share a separate 25-minute limit. Each isolated container has two CPUs, 4 GiB of RAM and no network. The proof export is capped at 32 MiB. Check the failed step on the PR's Actions run before retrying.

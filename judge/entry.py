@@ -3,6 +3,7 @@ import hashlib
 import json
 import re
 import subprocess
+from judge.presentation import read_writeup, validate_paper
 from pathlib import Path
 
 ID = re.compile(r"[a-z0-9][a-z0-9-]{0,47}\Z")
@@ -104,11 +105,14 @@ def prepare(files, entry, dest):
     if track=="construction":
         required.add("program.json")
     require(required<=files.keys() and all(files[x].strip() for x in required), "missing required file")
+    read_writeup(files["ARGUMENT.md"])
     claim = json_data(files["claim.json"])
-    require(type(claim) is dict and set(claim)=={"track","id","bound_bytes","team","contract"}
+    require(type(claim) is dict and set(claim) - {"paper_url"} == {"track","id","bound_bytes","team","contract"}
             and claim["track"]==track and claim["id"]==ident and claim["contract"]=="poisson-dag-v2-challenge-1",
             "invalid claim or contract")
     require(type(claim["team"]) is str and ID.fullmatch(claim["team"]), "invalid team")
+    if "paper_url" in claim:
+        validate_paper(claim["paper_url"])
     bound = natural(claim["bound_bytes"], "byte bound")
     require(bound>0, "expected positive bound")
     proof = dest/"proof"

@@ -4,7 +4,7 @@ How short can a few-time signature be in the authenticated-disclosure hash-DAG m
 
 **Pre-launch.** You can submit a proof to the Lean checker now. Prize dates and award rules are pending. Pre-launch checks do not enter the competition standings.
 
-[Leaderboard](https://few-time-signature.github.io/challenge/) · [Submission rules and CLI](RULES.md#submit-with-the-challenge-cli) · [Lean contract](formal/PoissonDAG/V2/Model.lean) · [Judge runs](https://github.com/few-time-signature/challenge/actions/workflows/submit.yml)
+[Leaderboard](https://few-time-signature.github.io/) · [Submission rules and CLI](RULES.md#submit-with-the-challenge-cli) · [Lean contract](formal/PoissonDAG/V2/Model.lean) · [Judge runs](https://github.com/few-time-signature/challenge/actions/workflows/submit.yml)
 
 | Track | Opening bound | Proof |
 | --- | ---: | --- |
@@ -17,6 +17,6 @@ Signing uses at most 2²⁴ expected hashes, verification at most 512 expected h
 
 Start with `./fts --help`. The CLI creates a fork and opens one pull request per claim. [Submit a construction](RULES.md#submit-a-construction) · [Submit a lower bound](RULES.md#submit-a-lower-bound)
 
-The [FORS proofs](examples/fors/) certify three parameter sets. The [PORS-family candidates](RULES.md#pors-family-references) and [756-byte GRS-CC candidate](examples/grs-cc/) still have proof obligations. The judge and proofs came from the [public rehearsal at its migration commit](https://github.com/chongxuren/poisson-fts-public-test/tree/b0ea6b11a92cf71e5e4928afec17e1886febbc3a). Practice submissions and receipts remain available there.
+The [FORS proofs](examples/fors/) certify three parameter sets. The public judge verified PORS+FP at 1,780 B, BPORS+FP at 1,492 B, BPORS-C+BFP at 1,188 B and GRS-CC at 756 B. Read the authors’ explanations and proof receipts on the [organization site](https://few-time-signature.github.io/#activity). The judge and proofs came from the [public rehearsal at its migration commit](https://github.com/chongxuren/poisson-fts-public-test/tree/b0ea6b11a92cf71e5e4928afec17e1886febbc3a). Practice submissions and receipts remain available there.
 
 For local infrastructure checks, run `python3 -B -m unittest discover -s tests -v`. The **Test the challenge** GitHub Actions workflow also runs the Linux Lean and container tests. [Licensing](LICENSE.md)

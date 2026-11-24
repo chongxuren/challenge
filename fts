@@ -44,6 +44,7 @@ def init_entry(track, ident, team):
             out.write(f"\nStarted from examples/entries/{track}/{template.name}. Describe any changes and contributors here.\n")
         draft.rename(dest)
     print(f"Created {dest} from the credited {claim['bound_bytes']} B organizer example.")
+    print("Start ARGUMENT.md with the public summary that will appear on the organization website.")
     print(f"Edit the files there, then run ./fts check {dest}")
 
 
