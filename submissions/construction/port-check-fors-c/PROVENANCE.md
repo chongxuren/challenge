@@ -1,0 +1,1 @@
+Pre-launch migration check submitted by the organizer. The proof and circuit reproduce the 2,020-byte FORS+C organizer example unchanged. [Original verified submission](https://github.com/chongxuren/poisson-fts-public-test/pull/6).
