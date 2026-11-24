@@ -1,8 +1,10 @@
-import { boundSeries, axis } from "./records.mjs";
+import { constructions, boundSeries, axis } from "./records.mjs";
 
 const repo = "https://github.com/few-time-signature/challenge";
 const svg = document.querySelector("#plot");
-const grsCandidateBytes = 756;
+const mint = "#7de0bf";
+const amber = "#efbd83";
+const violet = "#a3aaff";
 const segments = [...document.querySelectorAll("[data-track]")];
 const number = new Intl.NumberFormat("en");
 const fmt = (v) => (v === null ? "Open" : number.format(v) + " B");
@@ -112,255 +114,137 @@ function drawHistory() {
     cell(tr, link("Verified", "/actions/runs/" + r.run), "num");
   }
 }
-function inspect(index) {
-  if (!geometry || !samples.length) return;
-  selected = Math.max(0, Math.min(samples.length - 1, index));
-  const s = samples[selected],
-    x = geometry.x(selected);
-  const guide = svg.querySelector(".cursor");
-  guide.setAttribute("x1", x);
-  guide.setAttribute("x2", x);
-  for (const key of ["lower", "upper"]) {
-    const dot = svg.querySelector(".point-" + key);
-    dot.style.display = s[key] === null ? "none" : "";
-    if (s[key] !== null) {
-      dot.setAttribute("cx", x);
-      dot.setAttribute("cy", geometry.y(s[key]));
-    }
+const paperURL = (point) => "https://eprint.iacr.org/" + point.paper;
+const status = (point) => point.certified ? "Lean-certified" : "Candidate";
+
+function drawSources() {
+  const body = document.querySelector("#construction-sources");
+  for (const point of constructions) {
+    const row = body.insertRow();
+    const paper = document.createElement("a");
+    paper.href = paperURL(point);
+    paper.textContent = point.name;
+    cell(row, paper);
+    cell(row, fmt(point.bytes), "num bytes");
+    cell(row, link(status(point), point.source));
   }
-  const upper = ledger.best.construction === null
-    ? "Proposed upper " + fmt(grsCandidateBytes)
-    : "Certified upper " + fmt(s.upper);
-  const label = s.label + " · Lower " + fmt(s.lower) + " · " + upper;
-  document.querySelector("#readout").textContent = label;
-  svg.querySelector("desc").textContent =
-    label + ". Use the left and right arrow keys to inspect submissions.";
+}
+
+function inspect(index) {
+  selected = index;
+  const guide = svg.querySelector(".cursor");
+  guide.setAttribute("x1", geometry[index]);
+  guide.setAttribute("x2", geometry[index]);
+  const readout = document.querySelector("#readout");
+  if (index < constructions.length) {
+    const point = constructions[index];
+    readout.replaceChildren(point.name + " · " + fmt(point.bytes) + " · ",
+      link(status(point), point.source));
+  } else {
+    const sample = samples[index - constructions.length];
+    readout.textContent = sample.label + " · Certified lower " + fmt(sample.lower)
+      + " · Certified upper " + fmt(sample.upper);
+  }
+}
+
+function plotLabel(x, y, content, anchor = "start", color = "#acb6cf") {
+  return node("text", { x, y, fill: color, "text-anchor": anchor,
+    "font-family": "ui-monospace, monospace", "font-size": 11,
+    "pointer-events": "none" }, content);
+}
+
+function marker(index, y, color, filled, href, title) {
+  const x = geometry[index];
+  const anchor = node("a", { href, "aria-label": title });
+  anchor.append(node("title", {}, title),
+    node("circle", { cx: x, cy: y, r: 11, fill: "transparent" }),
+    node("circle", { class: "mark", cx: x, cy: y, r: 4.5,
+      fill: filled ? color : "#13182a", stroke: color, "stroke-width": 2 }));
+  anchor.addEventListener("focus", () => inspect(index));
+  return anchor;
 }
 
 function drawPlot() {
-  const w = Math.round(svg.getBoundingClientRect().width);
-  if (!samples?.length || w < 30) return;
-  const h = 161,
-    left = 39,
-    right = w - 20,
-    top = 12,
-    bottom = h - 27;
-  svg.setAttribute("viewBox", "0 0 " + w + " " + h);
-  svg.setAttribute("tabindex", "0");
-  const values = samples.flatMap((s) => [s.lower, s.upper]);
-  const showCandidate = ledger.best.construction === null;
-  if (showCandidate) values.push(grsCandidateBytes);
-  const scale = axis(values);
-  const x = (i) =>
-    left +
-    (samples.length === 1 ? 0 : ((right - left) * i) / (samples.length - 1));
-  const y = (v) =>
-    bottom - ((v - scale.min) * (bottom - top)) / (scale.max - scale.min);
-  geometry = { left, right, x, y };
-  svg.replaceChildren(
-    node(
-      "title",
-      { id: "plot-title" },
-      "Signature-size records by submission order",
-    ),
-    node("desc", { id: "plot-desc" }, ""),
-  );
-  const defs = node("defs", {}),
-    gradient = node("linearGradient", {
-      id: "lower-fill",
-      x1: "0",
-      y1: "0",
-      x2: "0",
-      y2: "1",
-    });
-  gradient.append(
-    node("stop", {
-      offset: "0%",
-      "stop-color": "#8895ff",
-      "stop-opacity": 0.23,
-    }),
-    node("stop", {
-      offset: "100%",
-      "stop-color": "#8895ff",
-      "stop-opacity": 0.015,
-    }),
-  );
-  defs.append(gradient);
-  svg.append(defs);
-  const label = (posX, posY, value, anchor = "start") =>
-    node(
-      "text",
-      {
-        x: posX,
-        y: posY,
-        "text-anchor": anchor,
-        fill: "#acb6cf",
-        "font-family": "ui-monospace, monospace",
-        "font-size": 11,
-      },
-      value,
-    );
+  const width = Math.round(svg.getBoundingClientRect().width);
+  if (!samples?.length || width < 100) return;
+  const left = 38, right = width - 13, top = 18, bottom = 173;
+  const count = constructions.length;
+  const opening = left + (right - left) * (samples.length === 1 ? .82 : .66);
+  const step = (opening - left) / count;
+  geometry = constructions.map((_, i) => left + step * i);
+  for (let i = 0; i < samples.length; i++)
+    geometry.push(opening + i * (right - opening) / Math.max(1, samples.length - 1));
+
+  const scale = axis([...constructions.map((p) => p.bytes),
+    ...samples.flatMap((s) => [s.lower, s.upper])]);
+  const y = (v) => bottom - (v - scale.min) * (bottom - top) / (scale.max - scale.min);
+  svg.setAttribute("viewBox", "0 0 " + width + " 205");
+  svg.replaceChildren(node("title", { id: "plot-title" }, "Historical designs and official signature bounds"),
+    node("desc", { id: "plot-desc" }, "Historical designs are ordered by first ePrint. Points open the design papers. Official records at the right open their proofs or submissions."));
   for (let v = scale.min; v <= scale.max; v += scale.step) {
-    svg.append(
-      node("line", {
-        x1: left,
-        y1: y(v),
-        x2: right,
-        y2: y(v),
-        stroke: "#31394e",
-        "stroke-dasharray": "3 5",
-      }),
-    );
-    const tick =
-      Math.abs(v) >= 10000
-        ? Intl.NumberFormat("en", {
-            notation: "compact",
-            maximumFractionDigits: 1,
-          }).format(v)
-        : String(v);
-    svg.append(label(left - 7, y(v) + 4, tick, "end"));
+    svg.append(node("line", { x1: left, x2: right, y1: y(v), y2: y(v),
+      stroke: "#31394e", "stroke-dasharray": "3 5" }),
+      plotLabel(left - 5, y(v) + 4, number.format(v), "end"));
   }
-  if (showCandidate) {
-    svg.append(
-      node("line", {
-        x1: left,
-        y1: y(grsCandidateBytes),
-        x2: right,
-        y2: y(grsCandidateBytes),
-        stroke: "#e5b077",
-        "stroke-width": 1.6,
-        "stroke-dasharray": "5 5",
-      }),
-    );
-    const proposalLabel = label(
-      right - 2,
-      y(grsCandidateBytes) < top + 17 ? y(grsCandidateBytes) + 14 : y(grsCandidateBytes) - 5,
-      fmt(grsCandidateBytes) + " · GRS-CC proposal",
-      "end",
-    );
-    proposalLabel.setAttribute("fill", "#efc68f");
-    svg.append(proposalLabel);
+  const divider = opening - step / 2;
+  svg.append(node("line", { x1: divider, x2: divider, y1: top, y2: bottom,
+    stroke: "#53607a", "stroke-dasharray": "4 4" }),
+    plotLabel(left, 198, width < 370 ? "Design history" : "Design history · first ePrint"),
+    plotLabel(right, 198, width < 370 ? "Official" : "Official bounds", "end"),
+    node("line", { class: "cursor", y1: top, y2: bottom, stroke: "#aeb8de",
+      "stroke-opacity": .4, "stroke-dasharray": "2 3", "pointer-events": "none" }));
+
+  const dots = [];
+  let certifiedPath = "";
+  for (const [i, p] of constructions.entries()) {
+    const color = p.certified ? mint : amber;
+    if (p.certified)
+      certifiedPath += (certifiedPath ? " L " : "M ") + geometry[i] + " " + y(p.bytes);
+    dots.push(marker(i, y(p.bytes), color, p.certified, paperURL(p),
+      p.name + " · " + fmt(p.bytes) + " · " + status(p) + " · design paper"));
+    if (i === 0 || i === count - 1)
+      svg.append(plotLabel(geometry[i], y(p.bytes) - 12, p.name + " " + fmt(p.bytes),
+        i === 0 ? "start" : "end", color));
   }
-  for (const [key, color] of [
-    ["lower", "#a3aaff"],
-    ["upper", "#7de0bf"],
-  ]) {
-    let path = "",
-      first = -1,
-      last = -1,
-      prior = null;
-    const markers = [];
-    for (let i = 0; i < samples.length; i++) {
-      const v = samples[i][key];
-      if (v === null) continue;
-      if (first < 0) {
-        first = i;
-        path = "M " + x(i) + " " + y(v);
-      } else if (v !== prior) {
-        path += " H " + x(i) + " V " + y(v);
-      }
-      if (v !== prior) markers.push([i, v]);
-      last = i;
-      prior = v;
+  if (certifiedPath)
+    svg.append(node("path", { d: certifiedPath, stroke: mint, "stroke-width": 1.5, fill: "none" }));
+
+  for (const [key, color] of [["lower", violet], ["upper", mint]]) {
+    let path = "", previous = null;
+    for (const [i, sample] of samples.entries()) {
+      const value = sample[key];
+      if (value === null || value === previous) continue;
+      const index = count + i;
+      path += path ? " H " + geometry[index] + " V " + y(value)
+        : "M " + geometry[index] + " " + y(value);
+      const source = i ? "/pull/" + ledger.history[i - 1].pr
+        : key === "lower" ? "/blob/main/formal/PoissonDAG/V2/Lower99.lean"
+        : "/tree/main/examples/entries/construction/fors-c-2020";
+      dots.push(marker(index, y(value), color, true, repo + source,
+        sample.label + " · certified " + key + " bound · " + fmt(value)));
+      previous = value;
     }
-    if (first < 0) continue;
-    path += " H " + (samples.length === 1 ? right : x(last));
-    if (key === "lower")
-      svg.append(
-        node("path", {
-          d: path + " V " + bottom + " H " + x(first) + " Z",
-          fill: "url(#lower-fill)",
-        }),
-      );
-    svg.append(
-      node("path", {
-        d: path,
-        stroke: color,
-        "stroke-width": 2.6,
-        fill: "none",
-        "stroke-linejoin": "round",
-      }),
-    );
-    if (key === "lower" && showCandidate && samples.length <= 5) {
-      for (const [i, v] of markers) {
-        const anchor = i === 0 ? "start" : i === samples.length - 1 ? "end" : "middle";
-        const text = label(x(i), y(v) - 9, fmt(v), anchor);
-        text.setAttribute("fill", color);
-        svg.append(text);
-      }
-    }
-    if (markers.length <= 35)
-      for (const [i, v] of markers)
-        svg.append(
-          node("circle", {
-            cx: x(i),
-            cy: y(v),
-            r: 3,
-            fill: color,
-            stroke: "#13182a",
-            "stroke-width": 1,
-          }),
-        );
+    if (path)
+      svg.append(node("path", { d: path + " H " + right, stroke: color,
+        "stroke-width": 2.5, fill: "none", "stroke-linejoin": "round" }));
   }
-  const n = samples.length,
-    middle = Math.floor((n - 1) / 2);
-  const indices = w < 360 || n < 3 ? [0, n - 1] : [0, middle, n - 1];
-  for (const i of new Set(indices))
-    svg.append(
-      label(
-        x(i),
-        h - 4,
-        samples[i].label,
-        i === 0 ? "start" : i === n - 1 ? "end" : "middle",
-      ),
-    );
-  svg.append(
-    node("line", {
-      class: "cursor",
-      y1: top,
-      y2: bottom,
-      stroke: "#aeb8de",
-      "stroke-opacity": 0.45,
-      "stroke-dasharray": "2 3",
-    }),
-  );
-  for (const [key, color] of [
-    ["lower", "#a3aaff"],
-    ["upper", "#7de0bf"],
-  ])
-    svg.append(
-      node("circle", {
-        class: "point-" + key,
-        r: 4.5,
-        stroke: color,
-        "stroke-width": 2,
-        fill: "#11172a",
-      }),
-    );
-  inspect(selected ?? n - 1);
+  svg.append(...dots);
+  inspect(selected);
 }
-function pointAt(event) {
-  if (!geometry || samples.length < 2) return;
-  const pos = event.clientX - svg.getBoundingClientRect().left;
-  inspect(
-    Math.round(
-      ((pos - geometry.left) / (geometry.right - geometry.left)) *
-        (samples.length - 1),
-    ),
-  );
-}
-svg.addEventListener("pointermove", (e) => {
-  if (e.pointerType === "mouse") pointAt(e);
+
+svg.addEventListener("pointermove", (event) => {
+  if (!geometry || event.pointerType !== "mouse") return;
+  const x = event.clientX - svg.getBoundingClientRect().left;
+  let closest = 0;
+  for (let i = 1; i < geometry.length; i++)
+    if (Math.abs(geometry[i] - x) < Math.abs(geometry[closest] - x)) closest = i;
+  if (closest !== selected) inspect(closest);
 });
-svg.addEventListener("pointerdown", pointAt);
 svg.addEventListener("keydown", (e) => {
-  if (!samples) return;
-  const keys = {
-    ArrowLeft: selected - 1,
-    ArrowRight: selected + 1,
-    Home: 0,
-    End: samples.length - 1,
-  };
+  if (!geometry || e.target !== svg) return;
+  const last = geometry.length - 1;
+  const keys = { ArrowLeft: Math.max(0, selected - 1),
+    ArrowRight: Math.min(last, selected + 1), Home: 0, End: last };
   if (e.key in keys) {
     e.preventDefault();
     inspect(keys[e.key]);
@@ -377,15 +261,9 @@ new ResizeObserver(drawPlot).observe(svg.parentElement);
 function display(data, source) {
   ledger = data;
   samples = boundSeries(data);
-  selected = samples.length - 1;
+  selected = data.history.length ? constructions.length + samples.length - 1 : constructions.length - 1;
   document.querySelector("#lower").textContent = fmt(data.best["lower-bound"]);
-  const hasUpper = data.best.construction !== null;
-  document.querySelector("#upper").textContent = fmt(data.best.construction ?? grsCandidateBytes);
-  document.querySelector("#upper-label").textContent = hasUpper ? "Certified upper bound" : "Proposed upper bound";
-  document.querySelector("#upper-swatch").className = hasUpper ? "swatch green" : "swatch proposed";
-  document.querySelector("#bounds-note").textContent = hasUpper
-    ? "Organizer baselines are the 99 B lower bound and the 2,020 B FORS+C construction."
-    : "The dashed line shows the GRS-CC candidate pending certification.";
+  document.querySelector("#upper").textContent = fmt(data.best.construction);
   document.querySelector("#sync").textContent = source;
   drawBoard();
   drawHistory();
@@ -420,4 +298,5 @@ async function load() {
     document.querySelector("#sync").textContent =
       "Scores unavailable. Open the score ledger to check the records.";
 }
+drawSources();
 load();

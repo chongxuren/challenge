@@ -1,3 +1,17 @@
+// These are challenge parameter sets, ordered by the design paper's first ePrint.
+// Only the score ledger below determines official standings.
+const forsEntry = "/tree/main/examples/entries/construction/";
+const porsRules = "/blob/main/RULES.md#pors-family-references";
+export const constructions = [
+  { name: "FORS", bytes: 2432, certified: true, paper: "2019/1086", source: forsEntry + "fors-2432" },
+  { name: "FORS+C", bytes: 2132, certified: true, paper: "2022/778", source: forsEntry + "fors-c-2132" },
+  { name: "FORS+C", bytes: 2020, certified: true, paper: "2022/778", source: forsEntry + "fors-c-2020" },
+  { name: "PORS+FP", bytes: 1780, certified: false, paper: "2025/2069", source: porsRules },
+  { name: "BPORS+FP", bytes: 1492, certified: false, paper: "2026/1328", source: porsRules },
+  { name: "BPORS-C+BFP", bytes: 1188, certified: false, paper: "2026/2374", source: porsRules },
+  { name: "GRS-CC", bytes: 756, certified: false, paper: "2026/2502", source: "/tree/main/examples/grs-cc" },
+];
+
 // One sample per accepted snapshot, in the judge's intake order. Only records move a bound.
 export function boundSeries(ledger) {
   const state = {

@@ -131,24 +131,35 @@
             </div>
             <div>
               <span class="metric-label"
-                ><i id="upper-swatch" class="swatch green"></i><span id="upper-label">Certified upper bound</span></span
+                ><i class="swatch green"></i>Certified upper bound</span
               ><strong id="upper">—</strong>
+            </div>
+            <div>
+              <span class="metric-label"><i class="candidate-dot"></i>GRS-CC candidate</span>
+              <strong>756 B</strong>
             </div>
           </div>
           <div class="plot-wrap">
             <svg
               id="plot"
-              role="img"
+              role="group"
+              tabindex="0"
               aria-labelledby="plot-title plot-desc"
             ></svg>
           </div>
-          <p class="axis-label plot-axis">Submission order</p>
           <p class="chart-readout" id="readout" aria-live="off">
             Loading record history…
           </p>
-          <p class="card-note" id="bounds-note">
-            Organizer baselines are the 99 B lower bound and the 2,020 B FORS+C construction.
-          </p>
+          <p class="card-note">Filled points have complete Lean certificates. Hollow points are candidates. Select a historical point to open its design paper.</p>
+          <details class="chart-sources">
+            <summary>Parameter sets and sources</summary>
+            <div class="scroll">
+              <table aria-label="Historical constructions and challenge-specific sizes">
+                <thead><tr><th>Design paper</th><th class="num">Bytes</th><th>Challenge evidence</th></tr></thead>
+                <tbody id="construction-sources"></tbody>
+              </table>
+            </div>
+          </details>
         </section>
 
         <section
