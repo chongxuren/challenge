@@ -5,7 +5,9 @@ namespace PoissonDAG.GRSCC.MomentPolynomial
 set_option maxRecDepth 20000
 set_option maxHeartbeats 0
 
-def multiplier (m v : Nat) := (6.choose (m-v)) * ((6-(m-v)).choose v)
+deriving instance DecidableEq for Term
+
+def multiplier (m v : Nat) := (Nat.choose 6 (m-v)) * ((6-(m-v)).choose v)
 def numeratorTerm (m v mask : Nat) : Int :=
   subsetSign mask * (((witness mask / base^(v+7*(m-v)) % base) / multiplier m v : Nat) : Int)
 def cap (m v : Nat) := (Small.caps[m]?.getD [])[v-1]?.getD 0
