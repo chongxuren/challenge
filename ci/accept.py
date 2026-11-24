@@ -21,7 +21,7 @@ def main():
     base, head = receipt["base"], receipt["head"]
     number = int(pr["number"])
     run = int(os.environ["GITHUB_RUN_ID"])
-    if base != pr["base"]["sha"] or head != pr["head"]["sha"] or pr["base"]["ref"] != "main":
+    if base != os.environ["CHECKED_BASE"] or head != pr["head"]["sha"] or pr["base"]["ref"] != "main":
         raise ValueError("receipt does not match this event")
     path = f"submissions/{receipt['track']}/{receipt['id']}"
     git("config", "user.name", "Poisson challenge judge")

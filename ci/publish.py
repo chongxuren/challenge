@@ -36,7 +36,7 @@ def main():
     receipt = json.loads(os.environ["RECEIPT"])
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
     pr = event["pull_request"]
-    if receipt["head"] != pr["head"]["sha"] or receipt["base"] != pr["base"]["sha"] or pr["base"]["ref"] != "main":
+    if receipt["head"] != pr["head"]["sha"] or receipt["base"] != os.environ["CHECKED_BASE"] or pr["base"]["ref"] != "main":
         raise ValueError("judge receipt disagrees with event")
     git("fetch", "--no-tags", "origin", receipt["head"])
     item = record(receipt, int(pr["number"]), int(os.environ["GITHUB_RUN_ID"]))

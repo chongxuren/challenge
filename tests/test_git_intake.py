@@ -47,6 +47,29 @@ class GitIntakeTests(unittest.TestCase):
         result = self.preflight()
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_concurrent_organizer_changes(self):
+        self.git("switch", "-qc", "entry")
+        self.copy_entry("construction/fors-c-2020")
+        self.git("add", "submissions")
+        self.git("commit", "-qm", "Supply one entry")
+        self.git("switch", "-qc", "organizer", self.base)
+        (self.repo / "docs").mkdir()
+        (self.repo / "docs/scores.json").write_text("{}")
+        self.git("add", "docs")
+        self.git("commit", "-qm", "Another result arrived")
+        ledger = self.git("rev-parse", "HEAD")
+        (self.repo / "RULES.md").write_text("Updated rules")
+        self.git("add", "RULES.md")
+        self.git("commit", "-qm", "Change organizer rules")
+        rules = self.git("rev-parse", "HEAD")
+        self.git("switch", "-q", "entry")
+        self.base = ledger
+        self.assertEqual(self.preflight().returncode, 0)
+        self.base = rules
+        self.assertIn("organizer rules changed", self.preflight().stderr)
+        self.git("merge", "-q", "--no-edit", "organizer")
+        self.assertEqual(self.preflight().returncode, 0)
+
     def assert_bundle_rejected(self, second):
         self.copy_entry("construction/fors-c-2020")
         self.copy_entry(second)

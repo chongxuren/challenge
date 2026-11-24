@@ -13,22 +13,23 @@ jobs:
     outputs:
       receipt: ${{ steps.judge.outputs.receipt }}
       scoring: ${{ steps.preflight.outputs.scoring }}
+      base: ${{ steps.preflight.outputs.base }}
+      organizer: ${{ steps.preflight.outputs.organizer }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: refs/heads/main
           fetch-depth: 0
           persist-credentials: false
       - name: Read the pull request as data
         id: preflight
         env:
-          BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
           PR: ${{ github.event.pull_request.number }}
         run: |
           git fetch --no-tags origin "refs/pull/$PR/head"
           test "$(git rev-parse FETCH_HEAD)" = "$HEAD"
-          python3 -B -m ci.preflight
+          BASE="$(git rev-parse HEAD)" python3 -B -m ci.preflight
       - run: bash ci/setup.sh
         timeout-minutes: 40
         env:
@@ -39,7 +40,7 @@ jobs:
         timeout-minutes: 25
         id: judge
         env:
-          BASE: ${{ github.event.pull_request.base.sha }}
+          BASE: ${{ steps.preflight.outputs.base }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: python3 -B ci/verify.py "$BASE" "$HEAD"
   publish:
@@ -51,10 +52,11 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ needs.verify.outputs.organizer }}
       - name: Publish the verified revision's write-up
         env:
           RECEIPT: ${{ needs.verify.outputs.receipt }}
+          CHECKED_BASE: ${{ needs.verify.outputs.base }}
         run: python3 -B ci/publish.py
   accept:
     needs: verify
@@ -67,11 +69,12 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ needs.verify.outputs.organizer }}
           fetch-depth: 0
       - name: Commit the checked entry and update scores
         env:
           RECEIPT: ${{ needs.verify.outputs.receipt }}
+          CHECKED_BASE: ${{ needs.verify.outputs.base }}
           GH_TOKEN: ${{ github.token }}
         run: python3 -B ci/accept.py
   report:
